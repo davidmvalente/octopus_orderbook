@@ -1,5 +1,5 @@
 # Every new app needs a name!
-appname := octopus
+appname := octopus.app
 
 # Sources
 srcdir := .
