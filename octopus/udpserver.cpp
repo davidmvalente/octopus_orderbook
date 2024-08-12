@@ -24,22 +24,22 @@ void UDPServer::start_receive() {
 void UDPServer::handle_reply(const error_code& error, size_t transferred) {
     if (!error) {
         try {
-            handler::process(recv_buffer_.data(), transferred);
-
             std::string s(recv_buffer_.data(), transferred);
-            std::cerr << "udpserver::handle_reply - processed message: " << s << std::endl;
+            std::cerr << "udpserver::handle_reply - Processing incoming message: " << s << std::endl;
+            handler::process(recv_buffer_.data(), transferred);
+            std::cerr << "udpserver::handle_reply - done" << std::endl << std::endl;
 
         } catch (std::exception const& ex) {
-            std::cerr << "udpserver::handle_reply: Error parsing incoming message:"
+            std::cerr << "udpserver::handle_reply - Error parsing incoming message:"
                       << ex.what() << "\n";
         } catch (...) {
             std::cerr
-                << "udpserver::handle_reply: Unknown error while parsing incoming message\n";
+                << "udpserver::handle_reply - Unknown error while parsing incoming message\n";
         }
 
         start_receive();
     } else {
-        std::cerr << "udpserver::handle_reply: error: " << error.message() << "\n";
+        std::cerr << "udpserver::handle_reply - Error " << error.message() << "\n";
     }
 }
 

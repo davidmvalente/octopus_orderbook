@@ -83,6 +83,7 @@ void handler::utils::log_order(t_order new_order){
  * @param order 
  */
 void handler::acknowledge(t_order order){
+        std::cerr << "@ handler::acknowledge: A, " << std::to_string(order.trader) << DELIMITER << std::to_string(order.uid) << std::endl;
         std::cout << "A, " << std::to_string(order.trader) << DELIMITER << std::to_string(order.uid) << std::endl;
     };
 
@@ -106,17 +107,18 @@ int handler::process(const char *recv_buffer, int transferred){
               having the actual new_order_id */ 
             handler::acknowledge(new_order);
             if (new_order.price) {
-                std::cerr << "process::limit" << std::endl;
+                std::cerr << "handler::process - Limit order" << std::endl;
                 t_orderid new_order_id = handler::limit(new_order);
                 handler::save(new_order, new_order_id);
             } else {
                 // market order
-                std::cerr << "process::market" << std::endl;
+                std::cerr << "process::process - Market order" << std::endl;
                 t_orderid new_order_id = handler::market(new_order);
                 handler::save(new_order, new_order_id);
             }
     } else if (event == CANCELORDER) {
         t_order to_cancel = utils::parse_cancel(recv_buffer, transferred);
+        std::cerr << "process::process: event_type:cancel" << std::endl;
         handler::cancel_order(to_cancel.trader, to_cancel.uid);
         // What format to publish cancellation? 
         // Should we update Top of Book?

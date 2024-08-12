@@ -26,15 +26,14 @@ Version: 1.71.0.0ubuntu2
 
 ## Run
 
-``` ./octopus 2> traces.log ```
+``` ./octopus 1> test/testOutput.csv```
 
 Server is listening on localhost:12345
 
 ## Test
 
 ``` 
-mv inputFile.csv test/
-python3 test/client.py
+python3 test/test_client.py
 ```
 
 ## Credits

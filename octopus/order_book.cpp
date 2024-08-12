@@ -11,7 +11,11 @@
 namespace executor {
 
 void execution(t_execution exec) {
-  std::cerr << "executor::execution - " << std::string(exec.symbol.data(), OB::kFieldLength) << " @ " << std::to_string(exec.price) << std::endl;
+  std::cerr << "executor::execution - Trading " << std::string(exec.symbol.data(), OB::kFieldLength) << " @ " << std::to_string(exec.price) << std::endl;
+  std::cerr << "@ executor::execution - T, " << std::to_string(exec.buyside) << DELIMITER << std::to_string(exec.buyside_uid) << DELIMITER
+  << std::to_string(exec.sellside) << DELIMITER << std::to_string(exec.sellside_uid) << DELIMITER
+  << std::to_string(exec.price) << DELIMITER << std::to_string(exec.size)
+  << std::endl;
   std::cout << "T, " << std::to_string(exec.buyside) << DELIMITER << std::to_string(exec.buyside_uid) << DELIMITER
   << std::to_string(exec.sellside) << DELIMITER << std::to_string(exec.sellside_uid) << DELIMITER
   << std::to_string(exec.price) << DELIMITER << std::to_string(exec.size)
@@ -40,6 +44,17 @@ void executeTrade(const Field& symbol, const t_size buyTrader, t_size buyerOrder
   exec.sellside_uid = sellerOrder;
   execution(exec); /* Report the trade */
 }
+
+void publishNewTopAsk(t_price newAskMin, t_size newAskSize) {
+    std::cerr << "@ OrderBook - askMin B, S, " << std::to_string(newAskMin) << DELIMITER << std::to_string(newAskSize) << std::endl;  
+    std::cout << "B, S, " << std::to_string(newAskMin) << DELIMITER << std::to_string(newAskSize) << std::endl;
+}
+
+void publishNewTopBid(t_price newBidMax, t_size newBidSize) {
+    std::cerr << "@ OrderBook - askMin B, S, " << std::to_string(newAskMin) << DELIMITER << std::to_string(newAskSize) << std::endl;
+    std::cout << "B, B, " << std::to_string(newAskMin) << DELIMITER << std::to_string(newAskSize) << std::endl;
+}
+
 }
 
 OrderBook& OrderBook::get() {
@@ -81,7 +96,7 @@ t_orderid OrderBook::limit(t_order& order) {
   if (order.side == 0) {/* Buy order */
     /* Look for outstanding sell orders that cross with the incoming order */
     if (price >= askMin) {
-        std::cerr << "crossing sell orders, price=" << std::to_string(price) << " askMin=" << std::to_string(askMin) << std::endl;
+        std::cerr << "OrderBook::limit - Bid:" << std::to_string(price) << " askMin:" << std::to_string(askMin) << std::endl;
       auto ppEntry = pricePoints.begin() + askMin;
       do {
         auto bookEntry = ppEntry->begin();
@@ -110,6 +125,7 @@ t_orderid OrderBook::limit(t_order& order) {
         /* We have exhausted all orders at the askMin price point. Move on to
            the next price level. */
         ppEntry->clear();
+        // Publish top of book change
         ppEntry++;
         askMin++;
       } while (price >= askMin);
@@ -123,6 +139,7 @@ t_orderid OrderBook::limit(t_order& order) {
     if (bidMax < price) {
       // top of book change
       bidMax = price;
+      std::cerr << "@ OrderBook - bidMax B, B, " << std::to_string(bidMax) << DELIMITER << std::to_string(entry->size) << std::endl;
       std::cout << "B, B, " << std::to_string(bidMax) << DELIMITER << std::to_string(entry->size) << std::endl;
     }
     return curOrderID;
@@ -130,7 +147,7 @@ t_orderid OrderBook::limit(t_order& order) {
   } else {/* Sell order */
     /* Look for outstanding Buy orders that cross with the incoming order */
     if (price <= bidMax) {
-        std::cerr << "crossing buy orders, price=" << std::to_string(price) << " bidMax=" << std::to_string(bidMax) << std::endl;
+        std::cerr << "OrderBook::limit - Ask:" << std::to_string(price) << ", bidMax:" << std::to_string(bidMax) << std::endl;
       auto ppEntry = pricePoints.begin() + bidMax;
       do {
       auto bookEntry = ppEntry->begin();
@@ -173,6 +190,7 @@ t_orderid OrderBook::limit(t_order& order) {
     if (askMin > price) {
       // top of book change
       askMin = price;
+      std::cerr << "@ OrderBook - askMin B, S, " << std::to_string(askMin) << DELIMITER << std::to_string(entry->size) << std::endl;
       std::cout << "B, S, " << std::to_string(askMin) << DELIMITER << std::to_string(entry->size) << std::endl;
     }
     return curOrderID;
