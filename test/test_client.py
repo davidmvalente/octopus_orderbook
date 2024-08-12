@@ -58,7 +58,7 @@ def compare_scenario_results(scenario, expected, actual):
     if all_match:
         print("SUCCESS: All lines match expected output")
     else:
-        print(f"FAIL: Mismatch in output. Expected {len(expected)} lines, got {len(actual)} lines")
+        print(f"FAIL: Mismatch in output.")
 
 def main():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

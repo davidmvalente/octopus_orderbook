@@ -37,10 +37,10 @@ N, 1, AAPL, 12, 100, S, 2
 N, 2, AAPL, 11, 100, S, 102
 
 # hit bid, generate trade, TOB = -/11
-2, AAPL, 10, 100, S, 103
+N, 2, AAPL, 10, 100, S, 103
 
 # replenish bid, TOB = 10/11
-1, AAPL, 10, 100, B, 3
+N, 1, AAPL, 10, 100, B, 3
 F
 
 #scenario3, shallow ask
