@@ -11,20 +11,21 @@
 namespace executor {
 
 void execution(t_execution exec) {
-  std::cerr << "executor::execution - Trading " << std::string(exec.symbol.data(), OB::kFieldLength) << " @ " << std::to_string(exec.price) << std::endl;
+  std::cerr << "executor::execution - Filling " << std::string(exec.symbol.data(), OB::kFieldLength) 
+    << " Qty. " << std::to_string(exec.size)
+    << " @ " << std::to_string(exec.price) << std::endl;
   std::cerr << "@ executor::execution - T, " << std::to_string(exec.buyside) << DELIMITER << std::to_string(exec.buyside_uid) << DELIMITER
-  << std::to_string(exec.sellside) << DELIMITER << std::to_string(exec.sellside_uid) << DELIMITER
-  << std::to_string(exec.price) << DELIMITER << std::to_string(exec.size)
-  << std::endl;
+    << std::to_string(exec.sellside) << DELIMITER << std::to_string(exec.sellside_uid) << DELIMITER
+    << std::to_string(exec.price) << DELIMITER << std::to_string(exec.size)
+    << std::endl;
   std::cout << "T, " << std::to_string(exec.buyside) << DELIMITER << std::to_string(exec.buyside_uid) << DELIMITER
-  << std::to_string(exec.sellside) << DELIMITER << std::to_string(exec.sellside_uid) << DELIMITER
-  << std::to_string(exec.price) << DELIMITER << std::to_string(exec.size)
-  << std::endl;
+    << std::to_string(exec.sellside) << DELIMITER << std::to_string(exec.sellside_uid) << DELIMITER
+    << std::to_string(exec.price) << DELIMITER << std::to_string(exec.size)
+    << std::endl;
 };
 
 
 /* Report trade execution */
-// TODO() publish top of the book after trade
 void executeTrade(const Field& symbol, const t_size buyTrader, t_size buyerOrder,
                   const t_size sellTrader, t_size sellerOrder, t_price tradePrice,
                   t_size tradeSize) {
@@ -51,8 +52,8 @@ void publishNewTopAsk(t_price newAskMin, t_size newAskSize) {
 }
 
 void publishNewTopBid(t_price newBidMax, t_size newBidSize) {
-    std::cerr << "@ OrderBook - askMin B, S, " << std::to_string(newAskMin) << DELIMITER << std::to_string(newAskSize) << std::endl;
-    std::cout << "B, B, " << std::to_string(newAskMin) << DELIMITER << std::to_string(newAskSize) << std::endl;
+    std::cerr << "@ OrderBook - askMin B, S, " << std::to_string(newBidMax) << DELIMITER << std::to_string(newBidSize) << std::endl;
+    std::cout << "B, B, " << std::to_string(newBidMax) << DELIMITER << std::to_string(newBidSize) << std::endl;
 }
 
 }
@@ -102,23 +103,28 @@ t_orderid OrderBook::limit(t_order& order) {
         auto bookEntry = ppEntry->begin();
         while (bookEntry != ppEntry->end()) {
           if (bookEntry->size < orderSize) {
+            /* Partial fil, our entry is not sufficient */
             executor::executeTrade(order.symbol, order.trader, order.uid, 
                       bookEntry->trader, bookEntry->uid, price, bookEntry->size);
             orderSize -= bookEntry->size;
-            ++bookEntry;
+             ++bookEntry;
           } else {
             executor::executeTrade(order.symbol, order.trader, order.uid, 
                       bookEntry->trader, bookEntry->uid, price,
                          orderSize);
-            if (bookEntry->size > orderSize)
+            if (bookEntry->size > orderSize) {
               bookEntry->size -= orderSize;
-            else
+            } else {
               ++bookEntry;
+            }
 
             ppEntry->erase(ppEntry->begin(), bookEntry);
+            executor::publishNewTopAsk(askMin, bookEntry->size); // TODO: This does not reflect the correct TOB price after a trade
+
             while (ppEntry->begin() != bookEntry) {
               ppEntry->pop_front();
             }
+
             return ++curOrderID;
           }
         }
@@ -128,6 +134,7 @@ t_orderid OrderBook::limit(t_order& order) {
         // Publish top of book change
         ppEntry++;
         askMin++;
+        executor::publishNewTopBid(askMin, bookEntry->size);
       } while (price >= askMin);
     }
 
@@ -139,8 +146,7 @@ t_orderid OrderBook::limit(t_order& order) {
     if (bidMax < price) {
       // top of book change
       bidMax = price;
-      std::cerr << "@ OrderBook - bidMax B, B, " << std::to_string(bidMax) << DELIMITER << std::to_string(entry->size) << std::endl;
-      std::cout << "B, B, " << std::to_string(bidMax) << DELIMITER << std::to_string(entry->size) << std::endl;
+      executor::publishNewTopBid(bidMax, entry->size);
     }
     return curOrderID;
 
@@ -162,23 +168,29 @@ t_orderid OrderBook::limit(t_order& order) {
             executor::executeTrade(order.symbol, bookEntry->trader, bookEntry->uid,
                          order.trader, order.uid, price,
                          orderSize);
-            if (bookEntry->size > orderSize)
+            if (bookEntry->size > orderSize){
               bookEntry->size -= orderSize;
-            else
+            } else {
               ++bookEntry;
+            }
 
+            executor::publishNewTopAsk(bidMax, bookEntry->size);
             while (ppEntry->begin() != bookEntry) {
               ppEntry->pop_front();
             }
+
+            std::cerr << "next order" << std::endl;
             return ++curOrderID;
           }
         }
 
         /* We have exhausted all orders at the bidMax price point. Move on to
            the next price level. */
-        ppEntry->clear(); 
+        ppEntry->clear();
         ppEntry--;
         bidMax--;
+        executor::publishNewTopAsk(bidMax, bookEntry->size);
+
       } while (price <= bidMax);
     }
 
@@ -190,8 +202,7 @@ t_orderid OrderBook::limit(t_order& order) {
     if (askMin > price) {
       // top of book change
       askMin = price;
-      std::cerr << "@ OrderBook - askMin B, S, " << std::to_string(askMin) << DELIMITER << std::to_string(entry->size) << std::endl;
-      std::cout << "B, S, " << std::to_string(askMin) << DELIMITER << std::to_string(entry->size) << std::endl;
+      executor::publishNewTopAsk(askMin,entry->size);
     }
     return curOrderID;
   }
